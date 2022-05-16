@@ -1,0 +1,19 @@
+{
+  links {
+    title
+    address
+    user {
+      name
+    }
+  }
+}
+
+mutation {
+  createLink(input: {title: "hello world", address: "http://localhost:1000"}) {
+    title,
+    address,
+    user {
+      name
+    }
+  }
+}
