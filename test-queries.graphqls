@@ -17,3 +17,7 @@ mutation {
     }
   }
 }
+
+mutation {
+  createUser(input: {username: "user1", password: "123"})
+}

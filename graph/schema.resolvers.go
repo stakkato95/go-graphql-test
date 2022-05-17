@@ -11,6 +11,8 @@ import (
 	"github.com/stakkato95/graphql-test/graph/generated"
 	"github.com/stakkato95/graphql-test/graph/model"
 	"github.com/stakkato95/graphql-test/internal/links"
+	"github.com/stakkato95/graphql-test/internal/users"
+	"github.com/stakkato95/graphql-test/pkg/jwt"
 )
 
 func (r *mutationResolver) CreateLink(ctx context.Context, input model.NewLink) (*model.Link, error) {
@@ -21,16 +23,44 @@ func (r *mutationResolver) CreateLink(ctx context.Context, input model.NewLink) 
 	return &model.Link{ID: strconv.FormatInt(linkID, 10), Title: link.Title, Address: link.Address}, nil
 }
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (string, error) {
+	var user users.User
+	user.Username = input.Username
+	user.Password = input.Password
+	user.Create()
+	token, err := jwt.GenerateToken(user.Username)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 func (r *mutationResolver) Login(ctx context.Context, input model.Login) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	var user users.User
+	user.Username = input.Username
+	user.Password = input.Password
+	correct := user.Authenticate()
+	if !correct {
+		// 1
+		return "", &users.WrongUsernameOrPasswordError{}
+	}
+	token, err := jwt.GenerateToken(user.Username)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 func (r *mutationResolver) RefreshToken(ctx context.Context, input model.RefreshTokenInput) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	username, err := jwt.ParseToken(input.Token)
+	if err != nil {
+		return "", fmt.Errorf("access denied")
+	}
+	token, err := jwt.GenerateToken(username)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 func (r *queryResolver) Links(ctx context.Context) ([]*model.Link, error) {
@@ -51,16 +81,3 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// // !!! WARNING !!!
-// // The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// // one last chance to move it out of harms way if you want. There are two reasons this happens:
-// //  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-// //    it when you're done.
-// //  - You have helper methods in this file. Move them out to keep these resolver files clean.
-// func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-// 	panic(fmt.Errorf("not implemented"))
-// }
-// func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-// 	panic(fmt.Errorf("not implemented"))
-// }
