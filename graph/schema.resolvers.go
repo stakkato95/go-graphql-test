@@ -6,21 +6,19 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/stakkato95/graphql-test/graph/generated"
 	"github.com/stakkato95/graphql-test/graph/model"
+	"github.com/stakkato95/graphql-test/internal/links"
 )
 
 func (r *mutationResolver) CreateLink(ctx context.Context, input model.NewLink) (*model.Link, error) {
-	link := model.Link{
-		Address: input.Address,
-		Title:   input.Title,
-		User: &model.User{
-			Name: "test",
-		},
-	}
-
-	return &link, nil
+	var link links.Link
+	link.Title = input.Title
+	link.Address = input.Address
+	linkID := link.Save()
+	return &model.Link{ID: strconv.FormatInt(linkID, 10), Title: link.Title, Address: link.Address}, nil
 }
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
@@ -36,14 +34,13 @@ func (r *mutationResolver) RefreshToken(ctx context.Context, input model.Refresh
 }
 
 func (r *queryResolver) Links(ctx context.Context) ([]*model.Link, error) {
-	links := []*model.Link{
-		{
-			Title:   "dummy link",
-			Address: "http://localhost:9999",
-			User:    &model.User{Name: "admin"},
-		},
+	var resultLinks []*model.Link
+	var dbLinks []links.Link
+	dbLinks = links.GetAll()
+	for _, link := range dbLinks {
+		resultLinks = append(resultLinks, &model.Link{ID: link.ID, Title: link.Title, Address: link.Address})
 	}
-	return links, nil
+	return resultLinks, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
